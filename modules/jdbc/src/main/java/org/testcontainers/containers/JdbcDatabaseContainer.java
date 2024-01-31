@@ -230,16 +230,31 @@ public abstract class JdbcDatabaseContainer<SELF extends JdbcDatabaseContainer<S
      *
      * @param queryString query string parameters that should be appended to the JDBC connection URL.
      *                    The '?' character must be included
-     * @param info  additional properties to be passed to the JDBC driver
+     * @param info        additional properties to be passed to the JDBC driver
      * @return a Connection
      * @throws SQLException if there is a repeated failure to create the connection
      */
     public Connection createConnection(String queryString, Properties info)
         throws SQLException, NoDriverFoundException {
+        return createConnection(queryString, info, null);
+    }
+
+    /**
+     * Creates a connection to the underlying containerized database instance.
+     *
+     * @param queryString        query string parameters that should be appended to the JDBC connection URL.
+     *                           The '?' character must be included
+     * @param info               additional properties to be passed to the JDBC driver
+     * @param customDatabaseName name of the database or null to use the default
+     * @return a Connection
+     * @throws SQLException if there is a repeated failure to create the connection
+     */
+    public Connection createConnection(String queryString, Properties info, String customDatabaseName)
+        throws SQLException, NoDriverFoundException {
         Properties properties = new Properties(info);
         properties.put("user", this.getUsername());
         properties.put("password", this.getPassword());
-        final String url = constructUrlForConnection(queryString);
+        final String url = constructUrlForConnection(queryString, customDatabaseName);
 
         final Driver jdbcDriverInstance = getJdbcDriverInstance();
 
@@ -279,7 +294,21 @@ public abstract class JdbcDatabaseContainer<SELF extends JdbcDatabaseContainer<S
      * @return a full JDBC URL including queryString
      */
     protected String constructUrlForConnection(String queryString) {
-        String baseUrl = getJdbcUrl();
+        return constructUrlForConnection(queryString, null);
+    }
+
+    /**
+     * Template method for constructing the JDBC URL to be used for creating {@link Connection}s.
+     * This should be overridden if the JDBC URL and query string concatenation or URL string
+     * construction needs to be different to normal.
+     *
+     * @param queryString        query string parameters that should be appended to the JDBC connection URL.
+     *                           The '?' character must be included
+     * @param customDatabaseName name of the database or null to use the default
+     * @return a full JDBC URL including queryString
+     */
+    protected String constructUrlForConnection(String queryString, String customDatabaseName) {
+        String baseUrl = customDatabaseName != null ? getJdbcUrl(customDatabaseName) : getJdbcUrl();
 
         if ("".equals(queryString)) {
             return baseUrl;
